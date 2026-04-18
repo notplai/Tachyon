@@ -1,0 +1,42 @@
+{
+	"schemaVersion": 1,
+	"id": "loom",
+	"version": "${version}",
+	"name": "Loom",
+	"description": "Loom is a high-performance optimization mod for Fabric, utilizing modern Java virtual threads and fast math utilities for improved efficiency.",
+	"authors": [
+		"NotPlai"
+	],
+	"contact": {
+		"homepage": "https://notplai.net/",
+		"sources": "https://github.com/notplai/Loom"
+	},
+	"license": "CC0-1.0",
+	"accessWidener": "loom.accesswidener",
+	"icon": "assets/loom/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"net.notplai.Main"
+		],
+		"client": [
+			"net.notplai.client.LoomClient"
+		],
+		"fabric-datagen": [
+			"net.notplai.client.LoomDataGenerator"
+		]
+	},
+	"mixins": [
+		"loom.mixins.json",
+		{
+			"config": "loom.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": "~26.1",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
