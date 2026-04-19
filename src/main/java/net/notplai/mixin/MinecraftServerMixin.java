@@ -4,7 +4,10 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.notplai.util.LoomMetrics;
+import net.notplai.api.TachyonAPI;
+import net.notplai.concurrent.TickingExecutor;
+import net.notplai.config.Config;
+import net.notplai.util.Metrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,47 +19,58 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.function.BooleanSupplier;
 
 /**
- * Loom Server Tick Profiling & Optimization.
- *
- * Why NOT parallel dimension ticking:
- *   ServerLevel.tick() calls getChunkSource().tick(haveTime) which schedules
- *   tasks back onto the main server thread. If dimension ticks run on worker
- *   threads while the main thread is blocked waiting (future.get()), we get a
- *   deadlock — chunks never load, and the game freezes on quit.
- *   Minecraft's profiler (Profiler.get()) is also not thread-safe.
- *
- * What we DO:
- *   - Per-dimension tick timing with rolling averages
- *   - Spike detection and logging
- *   - Full tick-children timing (all dimensions + overhead)
- *   - Clean server shutdown handling
- *   - FastMath (via MthMixin) provides real math acceleration
+ * Tachyon Server Tick Profiling, Executor Lifecycle & Optimization.
+ * <p>
+ * Manages:
+ * - TickingExecutor lifecycle (init on server start, shutdown on server stop)
+ * - Per-dimension tick timing with rolling averages
+ * - Spike detection and logging
+ * - Metrics snapshot publishing for F3 screen
+ * - Config-aware warn thresholds
  */
 @Mixin(MinecraftServer.class)
 public abstract class MinecraftServerMixin {
 
     @Unique
-    private static final Logger LOOM_LOGGER = LoggerFactory.getLogger("Loom/Server");
+    private static final Logger TACHYON_LOGGER = LoggerFactory.getLogger("Tachyon/Server");
 
     @Unique
-    private long loom$tickChildrenStart;
+    private long tachyon$tickChildrenStart;
 
     @Unique
-    private int loom$dimensionCount;
+    private int tachyon$dimensionCount;
 
     @Unique
-    private boolean loom$loggedStartup = false;
+    private boolean tachyon$loggedStartup = false;
+
+    /**
+     * Initialize executor on server start.
+     */
+    @Inject(method = "runServer", at = @At("HEAD"))
+    private void tachyon$onServerStart(CallbackInfo ci) {
+        Config.load();
+        Config config = Config.get();
+
+        if (config.parallelizationEnabled) {
+            TickingExecutor exec = new TickingExecutor("server");
+            TachyonAPI.initialize(exec);
+            TACHYON_LOGGER.info("[Tachyon] TickingExecutor initialized — parallelism: {}, adaptive: {}",
+                    config.maxParallelism, config.adaptiveBatchSizing);
+        } else {
+            TACHYON_LOGGER.info("[Tachyon] Parallelization disabled by config");
+        }
+    }
+
 
     /**
      * Wrap each ServerLevel.tick() call to add per-dimension timing.
-     * The tick still runs on the server thread (safe), but we measure it.
      */
     @WrapOperation(
             method = "tickChildren",
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/server/level/ServerLevel;tick(Ljava/util/function/BooleanSupplier;)V")
     )
-    private void loom$profileDimensionTick(ServerLevel level, BooleanSupplier hasTimeLeft, Operation<Void> original) {
+    private void tachyon$profileDimensionTick(ServerLevel level, BooleanSupplier hasTimeLeft, Operation<Void> original) {
         long start = System.nanoTime();
 
         original.call(level, hasTimeLeft);
@@ -64,14 +78,14 @@ public abstract class MinecraftServerMixin {
         long elapsed = System.nanoTime() - start;
         double ms = elapsed / 1_000_000.0;
 
-        // Track per-dimension timing
         String dimName = level.dimension().identifier().toString();
-        LoomMetrics.recordDimensionTick(dimName, ms);
-        loom$dimensionCount++;
+        Metrics.recordDimensionTick(dimName, ms);
+        tachyon$dimensionCount++;
 
-        if (ms > 50.0) {
-            LOOM_LOGGER.warn("[Loom] Dimension {} took {}ms (>50ms tick budget)",
-                    dimName, String.format("%.2f", ms));
+        double warnMs = Config.get().dimensionTickWarnMs;
+        if (ms > warnMs) {
+            TACHYON_LOGGER.warn("[Tachyon] Dimension {} took {}ms (>{}ms budget)",
+                    dimName, String.format("%.2f", ms), String.format("%.0f", warnMs));
         }
     }
 
@@ -80,48 +94,64 @@ public abstract class MinecraftServerMixin {
      */
     @Inject(method = "tickChildren",
             at = @At(value = "CONSTANT", args = "stringValue=levels"))
-    private void loom$beforeLevelsLoop(BooleanSupplier hasTimeLeft, CallbackInfo ci) {
-        loom$dimensionCount = 0;
-        loom$tickChildrenStart = System.nanoTime();
+    private void tachyon$beforeLevelsLoop(BooleanSupplier hasTimeLeft, CallbackInfo ci) {
+        tachyon$dimensionCount = 0;
+        tachyon$tickChildrenStart = System.nanoTime();
 
-        if (!loom$loggedStartup) {
-            loom$loggedStartup = true;
-            LOOM_LOGGER.info("[Loom] Server tick profiling active — tracking per-dimension timing");
-            LOOM_LOGGER.info("[Loom] FastMath LUT: {} | Profiling: {} | Cores: {}",
-                    LoomMetrics.fastMathEnabled ? "ENABLED" : "DISABLED",
-                    "ENABLED",
+        if (!tachyon$loggedStartup) {
+            tachyon$loggedStartup = true;
+            TACHYON_LOGGER.info("[Tachyon] Server tick profiling active — tracking per-dimension timing");
+            TACHYON_LOGGER.info("[Tachyon] FastMath: {} | Parallelization: {} | Cores: {}",
+                    Config.get().mathOverwritesEnabled ? "ON" : "OFF",
+                    Config.get().parallelizationEnabled ? "ON" : "OFF",
                     Runtime.getRuntime().availableProcessors());
         }
     }
 
     /**
-     * After the levels loop: record total tick-children time.
+     * After the levels loop: record total tick-children time, update executor metrics, publish snapshot.
      */
     @Inject(method = "tickChildren",
             at = @At(value = "CONSTANT", args = "stringValue=connection"))
-    private void loom$afterLevelsLoop(BooleanSupplier hasTimeLeft, CallbackInfo ci) {
-        long elapsed = System.nanoTime() - loom$tickChildrenStart;
+    private void tachyon$afterLevelsLoop(BooleanSupplier hasTimeLeft, CallbackInfo ci) {
+        long elapsed = System.nanoTime() - tachyon$tickChildrenStart;
         double ms = elapsed / 1_000_000.0;
 
-        LoomMetrics.dimensionCount = loom$dimensionCount;
-        LoomMetrics.recordTickChildrenTime(ms);
+        Metrics.dimensionCount = tachyon$dimensionCount;
+        Metrics.recordTickChildrenTime(ms);
 
-        if (ms > 50.0) {
-            LOOM_LOGGER.warn("[Loom] tickChildren ({} dimensions) took {}ms",
-                    loom$dimensionCount, String.format("%.2f", ms));
+        // Update executor metrics
+        if (TachyonAPI.isAvailable()) {
+            TickingExecutor ex = TachyonAPI.getExecutorInternal();
+            Metrics.recordExecutorStats(
+                    ex.getCpuPoolActiveThreads(),
+                    ex.getCpuPoolParallelism(),
+                    ex.getCpuPoolStealCount(),
+                    ex.getLastOptimalBatchSize()
+            );
+        }
+
+        // Publish consistent snapshot for F3 screen
+        Metrics.publishSnapshot();
+
+        double warnMs = Config.get().dimensionTickWarnMs;
+        if (ms > warnMs) {
+            TACHYON_LOGGER.warn("[Tachyon] tickChildren ({} dimensions) took {}ms",
+                    tachyon$dimensionCount, String.format("%.2f", ms));
         }
     }
 
     /**
-     * Clean shutdown — log final stats.
+     * Clean shutdown — shutdown executor and log final stats.
      */
     @Inject(method = "stopServer", at = @At("HEAD"))
-    private void loom$onServerStop(CallbackInfo ci) {
-        LOOM_LOGGER.info("[Loom] Server stopping — final stats:");
-        LOOM_LOGGER.info("[Loom]   Total ticks profiled: {}", LoomMetrics.getTotalTicksProfiled());
-        LOOM_LOGGER.info("[Loom]   Avg server tick: {}ms", String.format("%.2f", LoomMetrics.getServerTickAvgMs()));
-        LOOM_LOGGER.info("[Loom]   Peak server tick: {}ms", String.format("%.2f", LoomMetrics.getServerTickMaxMs()));
-        LOOM_LOGGER.info("[Loom]   FastMath enabled: {}", LoomMetrics.fastMathEnabled);
+    private void tachyon$onServerStop(CallbackInfo ci) {
+        TachyonAPI.shutdown();
+
+        TACHYON_LOGGER.info("[Tachyon] Server stopping — final stats:");
+        TACHYON_LOGGER.info("[Tachyon]   Total ticks profiled: {}", Metrics.getTotalTicksProfiled());
+        TACHYON_LOGGER.info("[Tachyon]   Avg server tick: {}ms", String.format("%.2f", Metrics.getServerTickAvgMs()));
+        TACHYON_LOGGER.info("[Tachyon]   Peak server tick: {}ms", String.format("%.2f", Metrics.getServerTickMaxMs()));
     }
 }
 
