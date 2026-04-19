@@ -19,7 +19,8 @@ loom {
 	splitEnvironmentSourceSets()
 
 	mods {
-		register("loom") {
+		// Use a mod id matching the new project naming (lowercase). Keep source sets the same.
+		register("loomproject") {
 			sourceSet(sourceSets.main.get())
 			sourceSet(sourceSets.getByName("client"))
 		}
@@ -40,7 +41,9 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	implementation("net.fabricmc.fabric-api:fabric-api:${providers.gradleProperty("fabric_api_version").get()}")
-	
+
+	// Gson is bundled with Minecraft, but we declare it for compile-time clarity
+	compileOnly("com.google.code.gson:gson:2.11.0")
 }
 
 tasks.processResources {

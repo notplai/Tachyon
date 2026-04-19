@@ -4,6 +4,9 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.notplai.api.LoomAPI;
+import net.notplai.concurrent.TickingExecutor;
+import net.notplai.config.LoomConfig;
 import net.notplai.util.LoomMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,21 +19,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.function.BooleanSupplier;
 
 /**
- * Loom Server Tick Profiling & Optimization.
- *
- * Why NOT parallel dimension ticking:
- *   ServerLevel.tick() calls getChunkSource().tick(haveTime) which schedules
- *   tasks back onto the main server thread. If dimension ticks run on worker
- *   threads while the main thread is blocked waiting (future.get()), we get a
- *   deadlock — chunks never load, and the game freezes on quit.
- *   Minecraft's profiler (Profiler.get()) is also not thread-safe.
- *
- * What we DO:
- *   - Per-dimension tick timing with rolling averages
- *   - Spike detection and logging
- *   - Full tick-children timing (all dimensions + overhead)
- *   - Clean server shutdown handling
- *   - FastMath (via MthMixin) provides real math acceleration
+ * Loom Server Tick Profiling, Executor Lifecycle & Optimization.
+ * <p>
+ * Manages:
+ * - TickingExecutor lifecycle (init on server start, shutdown on server stop)
+ * - Per-dimension tick timing with rolling averages
+ * - Spike detection and logging
+ * - Metrics snapshot publishing for F3 screen
+ * - Config-aware warn thresholds
  */
 @Mixin(MinecraftServer.class)
 public abstract class MinecraftServerMixin {
@@ -48,8 +44,26 @@ public abstract class MinecraftServerMixin {
     private boolean loom$loggedStartup = false;
 
     /**
+     * Initialize executor on server start.
+     */
+    @Inject(method = "runServer", at = @At("HEAD"))
+    private void loom$onServerStart(CallbackInfo ci) {
+        LoomConfig.load();
+        LoomConfig config = LoomConfig.get();
+
+        if (config.parallelizationEnabled) {
+            TickingExecutor exec = new TickingExecutor("server");
+            LoomAPI.initialize(exec);
+            LOOM_LOGGER.info("[Loom] TickingExecutor initialized — parallelism: {}, adaptive: {}",
+                    config.maxParallelism, config.adaptiveBatchSizing);
+        } else {
+            LOOM_LOGGER.info("[Loom] Parallelization disabled by config");
+        }
+    }
+
+
+    /**
      * Wrap each ServerLevel.tick() call to add per-dimension timing.
-     * The tick still runs on the server thread (safe), but we measure it.
      */
     @WrapOperation(
             method = "tickChildren",
@@ -64,14 +78,14 @@ public abstract class MinecraftServerMixin {
         long elapsed = System.nanoTime() - start;
         double ms = elapsed / 1_000_000.0;
 
-        // Track per-dimension timing
         String dimName = level.dimension().identifier().toString();
         LoomMetrics.recordDimensionTick(dimName, ms);
         loom$dimensionCount++;
 
-        if (ms > 50.0) {
-            LOOM_LOGGER.warn("[Loom] Dimension {} took {}ms (>50ms tick budget)",
-                    dimName, String.format("%.2f", ms));
+        double warnMs = LoomConfig.get().dimensionTickWarnMs;
+        if (ms > warnMs) {
+            LOOM_LOGGER.warn("[Loom] Dimension {} took {}ms (>{}ms budget)",
+                    dimName, String.format("%.2f", ms), String.format("%.0f", warnMs));
         }
     }
 
@@ -87,15 +101,15 @@ public abstract class MinecraftServerMixin {
         if (!loom$loggedStartup) {
             loom$loggedStartup = true;
             LOOM_LOGGER.info("[Loom] Server tick profiling active — tracking per-dimension timing");
-            LOOM_LOGGER.info("[Loom] FastMath LUT: {} | Profiling: {} | Cores: {}",
-                    LoomMetrics.fastMathEnabled ? "ENABLED" : "DISABLED",
-                    "ENABLED",
+            LOOM_LOGGER.info("[Loom] FastMath: {} | Parallelization: {} | Cores: {}",
+                    LoomConfig.get().mathOverwritesEnabled ? "ON" : "OFF",
+                    LoomConfig.get().parallelizationEnabled ? "ON" : "OFF",
                     Runtime.getRuntime().availableProcessors());
         }
     }
 
     /**
-     * After the levels loop: record total tick-children time.
+     * After the levels loop: record total tick-children time, update executor metrics, publish snapshot.
      */
     @Inject(method = "tickChildren",
             at = @At(value = "CONSTANT", args = "stringValue=connection"))
@@ -106,22 +120,38 @@ public abstract class MinecraftServerMixin {
         LoomMetrics.dimensionCount = loom$dimensionCount;
         LoomMetrics.recordTickChildrenTime(ms);
 
-        if (ms > 50.0) {
+        // Update executor metrics
+        if (LoomAPI.isAvailable()) {
+            TickingExecutor ex = LoomAPI.getExecutorInternal();
+            LoomMetrics.recordExecutorStats(
+                    ex.getCpuPoolActiveThreads(),
+                    ex.getCpuPoolParallelism(),
+                    ex.getCpuPoolStealCount(),
+                    ex.getLastOptimalBatchSize()
+            );
+        }
+
+        // Publish consistent snapshot for F3 screen
+        LoomMetrics.publishSnapshot();
+
+        double warnMs = LoomConfig.get().dimensionTickWarnMs;
+        if (ms > warnMs) {
             LOOM_LOGGER.warn("[Loom] tickChildren ({} dimensions) took {}ms",
                     loom$dimensionCount, String.format("%.2f", ms));
         }
     }
 
     /**
-     * Clean shutdown — log final stats.
+     * Clean shutdown — shutdown executor and log final stats.
      */
     @Inject(method = "stopServer", at = @At("HEAD"))
     private void loom$onServerStop(CallbackInfo ci) {
+        LoomAPI.shutdown();
+
         LOOM_LOGGER.info("[Loom] Server stopping — final stats:");
         LOOM_LOGGER.info("[Loom]   Total ticks profiled: {}", LoomMetrics.getTotalTicksProfiled());
         LOOM_LOGGER.info("[Loom]   Avg server tick: {}ms", String.format("%.2f", LoomMetrics.getServerTickAvgMs()));
         LOOM_LOGGER.info("[Loom]   Peak server tick: {}ms", String.format("%.2f", LoomMetrics.getServerTickMaxMs()));
-        LOOM_LOGGER.info("[Loom]   FastMath enabled: {}", LoomMetrics.fastMathEnabled);
     }
 }
 

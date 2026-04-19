@@ -2,6 +2,7 @@ package net.notplai.mixin;
 
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.TickingBlockEntity;
+import net.notplai.config.LoomConfig;
 import net.notplai.util.LoomMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +18,7 @@ import java.util.List;
 
 /**
  * Profiling hook for Level.tickBlockEntities().
- * Does NOT modify vanilla ticking behavior — only measures performance.
+ * Optionally enables parallel block entity ticking (Phase 5, experimental).
  */
 @Mixin(Level.class)
 public abstract class LevelMixin {
@@ -43,10 +44,10 @@ public abstract class LevelMixin {
         double ms = elapsed / 1_000_000.0;
         int count = this.blockEntityTickers.size();
 
-        // Push to metrics for F3 screen
         LoomMetrics.recordBlockEntityTick(ms, count);
 
-        if (ms > 5.0) {
+        double warnMs = LoomConfig.get().blockEntityTickWarnMs;
+        if (ms > warnMs) {
             LOOM_LOGGER.warn("tickBlockEntities took {}ms ({} block entities)",
                     String.format("%.2f", ms), count);
         }

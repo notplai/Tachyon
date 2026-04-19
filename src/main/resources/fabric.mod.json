@@ -1,15 +1,15 @@
 {
 	"schemaVersion": 1,
-	"id": "loom",
+	"id": "loomproject",
 	"version": "${version}",
-	"name": "Loom",
-	"description": "Loom is a high-performance optimization mod for Fabric, utilizing modern Java virtual threads and fast math utilities for improved efficiency.",
+	"name": "LoomProject",
+	"description": "LoomProject offloads heavy game work to concurrent threads (including modern virtual threads) and provides FastMath utilities for high-performance math and reduced CPU overhead.",
 	"authors": [
 		"NotPlai"
 	],
 	"contact": {
 		"homepage": "https://notplai.net/",
-		"sources": "https://github.com/notplai/Loom"
+		"sources": "https://github.com/notplai/LoomProject"
 	},
 	"license": "CC0-1.0",
 	"accessWidener": "loom.accesswidener",
