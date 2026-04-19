@@ -3,7 +3,7 @@
 	"id": "loomproject",
 	"version": "${version}",
 	"name": "LoomProject",
-	"description": "LoomProject offloads heavy game work to concurrent threads (including modern virtual threads) and provides FastMath utilities for high-performance math and reduced CPU overhead.",
+	"description": "LoomProject offloads heavy game work to concurrent threads.",
 	"authors": [
 		"NotPlai"
 	],
@@ -11,7 +11,7 @@
 		"homepage": "https://notplai.net/",
 		"sources": "https://github.com/notplai/LoomProject"
 	},
-	"license": "CC0-1.0",
+	"license": "Apache-2.0",
 	"accessWidener": "loom.accesswidener",
 	"icon": "assets/loom/icon.png",
 	"environment": "*",
