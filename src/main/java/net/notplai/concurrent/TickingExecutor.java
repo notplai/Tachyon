@@ -1,6 +1,6 @@
 package net.notplai.concurrent;
 
-import net.notplai.config.LoomConfig;
+import net.notplai.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +19,7 @@ import java.util.function.Function;
  */
 public final class TickingExecutor {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger("Loom/TickingExecutor");
+    private static final Logger LOGGER = LoggerFactory.getLogger("Tachyon/TickingExecutor");
 
     private final String name;
     private final ExecutorService virtualExecutor;
@@ -32,11 +32,11 @@ public final class TickingExecutor {
 
     public TickingExecutor(String name) {
         this.name = name;
-        LoomConfig config = LoomConfig.get();
+        Config config = Config.get();
 
         // Virtual threads for I/O-bound and waiting tasks
         this.virtualExecutor = Executors.newThreadPerTaskExecutor(
-                Thread.ofVirtual().name("loom-" + name + "-vt-", 0).factory()
+                Thread.ofVirtual().name("tachyon-" + name + "-vt-", 0).factory()
         );
 
         // Bounded ForkJoinPool for CPU-bound tasks (pathfinding, heavy math)
@@ -45,15 +45,15 @@ public final class TickingExecutor {
                 parallelism,
                 pool -> {
                     ForkJoinWorkerThread t = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
-                    t.setName("loom-" + name + "-cpu-" + t.getPoolIndex());
+                    t.setName("tachyon-" + name + "-cpu-" + t.getPoolIndex());
                     t.setDaemon(true);
                     return t;
                 },
-                (t, e) -> LOGGER.error("[Loom/{}] Uncaught exception in CPU pool thread {}", name, t.getName(), e),
+                (t, e) -> LOGGER.error("[Tachyon/{}] Uncaught exception in CPU pool thread {}", name, t.getName(), e),
                 true // async mode
         );
 
-        LOGGER.info("[Loom/{}] Executor initialized: VirtualThreads + ForkJoinPool(parallelism={})", name, parallelism);
+        LOGGER.info("[Tachyon/{}] Executor initialized: VirtualThreads + ForkJoinPool(parallelism={})", name, parallelism);
     }
 
     /**
@@ -64,7 +64,7 @@ public final class TickingExecutor {
     public <T> void runParallel(List<T> items, Consumer<T> action) {
         if (shutdown || items.isEmpty()) return;
 
-        LoomConfig config = LoomConfig.get();
+        Config config = Config.get();
         if (!config.parallelizationEnabled || items.size() <= config.parallelThreshold) {
             runSequential(items, action);
             return;
@@ -77,7 +77,7 @@ public final class TickingExecutor {
                 try {
                     action.accept(item);
                 } catch (Exception e) {
-                    LOGGER.error("[Loom/{}] Exception ticking item: {}", name, item, e);
+                    LOGGER.error("[Tachyon/{}] Exception ticking item: {}", name, item, e);
                 }
             }));
         }
@@ -93,7 +93,7 @@ public final class TickingExecutor {
     public <T> void runBatched(List<T> items, Consumer<T> action) {
         if (shutdown || items.isEmpty()) return;
 
-        LoomConfig config = LoomConfig.get();
+        Config config = Config.get();
         if (!config.parallelizationEnabled || items.size() <= config.parallelThreshold) {
             runSequential(items, action);
             return;
@@ -119,7 +119,7 @@ public final class TickingExecutor {
                     try {
                         action.accept(items.get(i));
                     } catch (Exception e) {
-                        LOGGER.error("[Loom/{}] Exception ticking item: {}", name, items.get(i), e);
+                        LOGGER.error("[Tachyon/{}] Exception ticking item: {}", name, items.get(i), e);
                     }
                 }
             }));
@@ -201,18 +201,18 @@ public final class TickingExecutor {
         try {
             if (!virtualExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
                 virtualExecutor.shutdownNow();
-                LOGGER.warn("[Loom/{}] Virtual executor forced shutdown", name);
+                LOGGER.warn("[Tachyon/{}] Virtual executor forced shutdown", name);
             }
             if (!cpuPool.awaitTermination(5, TimeUnit.SECONDS)) {
                 cpuPool.shutdownNow();
-                LOGGER.warn("[Loom/{}] CPU pool forced shutdown", name);
+                LOGGER.warn("[Tachyon/{}] CPU pool forced shutdown", name);
             }
         } catch (InterruptedException e) {
             virtualExecutor.shutdownNow();
             cpuPool.shutdownNow();
             Thread.currentThread().interrupt();
         }
-        LOGGER.info("[Loom/{}] Executor shut down cleanly", name);
+        LOGGER.info("[Tachyon/{}] Executor shut down cleanly", name);
     }
 
 
@@ -221,7 +221,7 @@ public final class TickingExecutor {
             try {
                 action.accept(item);
             } catch (Exception e) {
-                LOGGER.error("[Loom/{}] Exception ticking item: {}", name, item, e);
+                LOGGER.error("[Tachyon/{}] Exception ticking item: {}", name, item, e);
             }
         }
     }
@@ -232,27 +232,27 @@ public final class TickingExecutor {
             try {
                 long remaining = deadline - System.currentTimeMillis();
                 if (remaining <= 0) {
-                    LOGGER.warn("[Loom/{}] Circuit breaker: timeout after {}ms, cancelling remaining tasks",
+                    LOGGER.warn("[Tachyon/{}] Circuit breaker: timeout after {}ms, cancelling remaining tasks",
                             name, timeoutMs);
                     futures.forEach(f -> f.cancel(true));
                     break;
                 }
                 future.get(remaining, TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
-                LOGGER.warn("[Loom/{}] Task timed out, triggering circuit breaker", name);
+                LOGGER.warn("[Tachyon/{}] Task timed out, triggering circuit breaker", name);
                 futures.forEach(f -> f.cancel(true));
                 break;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
             } catch (ExecutionException e) {
-                LOGGER.error("[Loom/{}] Unexpected execution exception", name, e);
+                LOGGER.error("[Tachyon/{}] Unexpected execution exception", name, e);
             } catch (CancellationException ignored) {
             }
         }
     }
 
-    private int computeBatchSize(int totalItems, LoomConfig config) {
+    private int computeBatchSize(int totalItems, Config config) {
         if (config.adaptiveBatchSizing && lastTaskAvgNanos > 0) {
             // Target: each batch should take ~2ms of work for good load balancing
             double targetBatchNanos = 2_000_000.0;

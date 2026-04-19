@@ -11,18 +11,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Runtime configuration for LoomProject.
- * Stored as JSON in config/loomproject.json.
+ * Runtime configuration for Tachyon.
+ * Stored as JSON in config/tachyon.json.
  * All fields are hot-readable (volatile backing) but only written on load/save.
  */
-public final class LoomConfig {
+public final class Config {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger("Loom/Config");
+    private static final Logger LOGGER = LoggerFactory.getLogger("Tachyon/Config");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final String FILE_NAME = "loomproject.json";
+    private static final String FILE_NAME = "tachyon-config.json";
 
     // Singleton
-    private static volatile LoomConfig INSTANCE;
+    private static volatile Config INSTANCE;
 
 
     /** Master toggle for all parallelization features */
@@ -58,6 +58,13 @@ public final class LoomConfig {
     /** Enable parallel block entity ticking (Phase 5 - experimental) */
     public boolean parallelBlockEntityTicking = false;
 
+    /** Enable optimized explosion calculations (block state caching + pre-computed rays) */
+    public boolean optimizedExplosions = true;
+
+    /** Max explosions processed per tick per dimension. Overflow queued for next tick.
+     *  0 or negative = unlimited (vanilla behavior). 100 works well for most servers. */
+    public int maxExplosionsPerTick = 100;
+
     /** Enable async chunk I/O offloading */
     public boolean asyncChunkIO = true;
 
@@ -65,7 +72,7 @@ public final class LoomConfig {
     public int metricsSnapshotIntervalTicks = 1;
 
 
-    public static LoomConfig get() {
+    public static Config get() {
         if (INSTANCE == null) {
             load();
         }
@@ -79,28 +86,28 @@ public final class LoomConfig {
         if (Files.exists(configFile)) {
             try {
                 String json = Files.readString(configFile);
-                INSTANCE = GSON.fromJson(json, LoomConfig.class);
-                LOGGER.info("[Loom] Config loaded from {}", configFile);
+                INSTANCE = GSON.fromJson(json, Config.class);
+                LOGGER.info("Config loaded from {}", configFile);
             } catch (Exception e) {
-                LOGGER.error("[Loom] Failed to load config, using defaults", e);
-                INSTANCE = new LoomConfig();
+                LOGGER.error("Failed to load config, using defaults", e);
+                INSTANCE = new Config();
             }
         } else {
-            INSTANCE = new LoomConfig();
+            INSTANCE = new Config();
             save(); // Write defaults
         }
     }
 
     public static synchronized void save() {
-        if (INSTANCE == null) INSTANCE = new LoomConfig();
+        if (INSTANCE == null) INSTANCE = new Config();
         Path configDir = FabricLoader.getInstance().getConfigDir();
         Path configFile = configDir.resolve(FILE_NAME);
         try {
             Files.createDirectories(configDir);
             Files.writeString(configFile, GSON.toJson(INSTANCE));
-            LOGGER.info("[Loom] Config saved to {}", configFile);
+            LOGGER.info("[Tachyon] Config saved to {}", configFile);
         } catch (IOException e) {
-            LOGGER.error("[Loom] Failed to save config", e);
+            LOGGER.error("[Tachyon] Failed to save config", e);
         }
     }
 

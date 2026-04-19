@@ -1,24 +1,24 @@
 package net.notplai;
 
 import net.fabricmc.api.ModInitializer;
-import net.notplai.config.LoomConfig;
+import net.notplai.config.Config;
 import net.notplai.util.FastMath;
-import net.notplai.util.LoomMetrics;
+import net.notplai.util.Metrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Main implements ModInitializer {
-    public static final String MOD_ID = "loomproject";
-    public static final Logger LOGGER = LoggerFactory.getLogger("LoomProject");
+    public static final String MOD_ID = "tachyon";
+    public static final Logger LOGGER = LoggerFactory.getLogger("Tachyon");
 
     @Override
     public void onInitialize() {
         // Load config
-        LoomConfig.load();
-        LoomConfig config = LoomConfig.get();
+        Config.load();
+        Config config = Config.get();
 
         LOGGER.info("""
-                        LoomProject here! Informed Runtime:
+                        Tachyon here! Informed Runtime:
                            Java version: {}
                            Available processors: {}
                            Max memory: {}MB
@@ -44,8 +44,8 @@ public class Main implements ModInitializer {
         float cosInf = FastMath.cos(Double.POSITIVE_INFINITY);
         long warmElapsed = System.nanoTime() - warmStart;
 
-        LoomMetrics.fastMathTableSize = FastMath.getTableSize();
-        LoomMetrics.fastMathInitTimeUs = warmElapsed / 1000;
+        Metrics.fastMathTableSize = FastMath.getTableSize();
+        Metrics.fastMathInitTimeUs = warmElapsed / 1000;
 
         LOGGER.info("""
                     [FastMath] Initialized ({} entries) in {}µs:

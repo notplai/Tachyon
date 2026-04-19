@@ -1,6 +1,6 @@
-# LoomProject
+# Tachyon
 
-LoomProject is a Fabric mod that improves Minecraft performance by offloading heavy work to concurrent threads (including support for modern virtual threads) and by providing high-performance math utilities (FastMath) to reduce CPU overhead for common math operations.
+Tachyon is a Fabric mod that improves Minecraft performance by offloading heavy work to concurrent threads (including support for modern virtual threads) and by providing high-performance math utilities (FastMath) to reduce CPU overhead for common math operations.
 
 Summary
 - Offloads CPU-intensive systems to worker threads / virtual threads to reduce main-thread stalls and improve responsiveness.

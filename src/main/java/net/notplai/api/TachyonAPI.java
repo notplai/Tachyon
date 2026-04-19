@@ -1,9 +1,9 @@
 package net.notplai.api;
 
 import net.notplai.concurrent.TickingExecutor;
-import net.notplai.config.LoomConfig;
+import net.notplai.config.Config;
 import net.notplai.util.FastMath;
-import net.notplai.util.LoomMetrics;
+import net.notplai.util.Metrics;
 
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -13,7 +13,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Public API for LoomProject.
+ * Public API for Tachyon.
  * <p>
  * Other mods can use this to:
  * - Access the shared TickingExecutor safely
@@ -25,21 +25,21 @@ import java.util.function.Supplier;
  *
  * @since 1.0.0
  */
-public final class LoomAPI {
+public final class TachyonAPI {
 
-    private LoomAPI() {}
+    private TachyonAPI() {}
 
     private static volatile TickingExecutor executor;
 
     /**
-     * Called internally by LoomProject on server start. Do NOT call from other mods.
+     * Called internally by Tachyon on server start. Do NOT call from other mods.
      */
     public static void initialize(TickingExecutor exec) {
         executor = exec;
     }
 
     /**
-     * Called internally by LoomProject on server stop. Do NOT call from other mods.
+     * Called internally by Tachyon on server stop. Do NOT call from other mods.
      */
     public static void shutdown() {
         TickingExecutor ex = executor;
@@ -57,7 +57,7 @@ public final class LoomAPI {
 
 
     /**
-     * Check if the LoomProject executor is available and running.
+     * Check if the Tachyon executor is available and running.
      *
      * @return true if parallelization is enabled and the server is running
      */
@@ -68,7 +68,7 @@ public final class LoomAPI {
 
     /**
      * Run a list of items in parallel using virtual threads (I/O-bound work).
-     * Falls back to sequential execution if Loom is unavailable or disabled.
+     * Falls back to sequential execution if Tachyon is unavailable or disabled.
      *
      * @param items  items to process
      * @param action action to perform on each item
@@ -82,7 +82,7 @@ public final class LoomAPI {
 
     /**
      * Run a list of items in batched parallel using the CPU pool (CPU-bound work).
-     * Falls back to sequential execution if Loom is unavailable or disabled.
+     * Falls back to sequential execution if Tachyon is unavailable or disabled.
      *
      * @param items  items to process
      * @param action action to perform on each item
@@ -103,12 +103,12 @@ public final class LoomAPI {
      * @param task the callable to execute
      * @param <R>  result type
      * @return Future with the result
-     * @throws IllegalStateException if Loom is not available
+     * @throws IllegalStateException if Tachyon is not available
      */
     public static <R> Future<R> submitAsync(Callable<R> task) {
         TickingExecutor ex = executor;
         if (ex == null || ex.isShutdown()) {
-            throw new IllegalStateException("LoomProject executor is not available");
+            throw new IllegalStateException("Tachyon executor is not available");
         }
         return ex.submitAsync(task);
     }
@@ -119,12 +119,12 @@ public final class LoomAPI {
      * @param task the callable to execute
      * @param <R>  result type
      * @return Future with the result
-     * @throws IllegalStateException if Loom is not available
+     * @throws IllegalStateException if Tachyon is not available
      */
     public static <R> Future<R> submitCpu(Callable<R> task) {
         TickingExecutor ex = executor;
         if (ex == null || ex.isShutdown()) {
-            throw new IllegalStateException("LoomProject executor is not available");
+            throw new IllegalStateException("Tachyon executor is not available");
         }
         return ex.submitCpu(task);
     }
@@ -141,12 +141,12 @@ public final class LoomAPI {
      * @param <S>      snapshot type
      * @param <R>      result type
      * @return Future containing the processed result
-     * @throws IllegalStateException if Loom is not available
+     * @throws IllegalStateException if Tachyon is not available
      */
     public static <S, R> Future<R> submitSnapshotTask(Supplier<S> snapshot, Function<S, R> process) {
         TickingExecutor ex = executor;
         if (ex == null || ex.isShutdown()) {
-            throw new IllegalStateException("LoomProject executor is not available");
+            throw new IllegalStateException("Tachyon executor is not available");
         }
         return ex.submitSnapshotTask(snapshot, process);
     }
@@ -177,13 +177,13 @@ public final class LoomAPI {
 
 
     /**
-     * Get a thread-safe, consistent snapshot of all Loom metrics.
+     * Get a thread-safe, consistent snapshot of all Tachyon metrics.
      * Safe to call from any thread (render thread, server thread, etc.).
      *
      * @return immutable metrics snapshot
      */
-    public static LoomMetrics.MetricsSnapshot getMetrics() {
-        return LoomMetrics.getSnapshot();
+    public static Metrics.MetricsSnapshot getMetrics() {
+        return Metrics.getSnapshot();
     }
 
 
@@ -192,14 +192,14 @@ public final class LoomAPI {
      * Check if parallelization is enabled in config.
      */
     public static boolean isParallelizationEnabled() {
-        return LoomConfig.get().parallelizationEnabled;
+        return Config.get().parallelizationEnabled;
     }
 
     /**
      * Check if FastMath overwrites are enabled in config.
      */
     public static boolean isMathOverwritesEnabled() {
-        return LoomConfig.get().mathOverwritesEnabled;
+        return Config.get().mathOverwritesEnabled;
     }
 }
 

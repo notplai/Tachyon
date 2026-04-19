@@ -1,7 +1,7 @@
 package net.notplai.mixin;
 
 import net.minecraft.util.Mth;
-import net.notplai.config.LoomConfig;
+import net.notplai.config.Config;
 import net.notplai.util.FastMath;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -25,7 +25,7 @@ public class MthMixin {
      */
     @Overwrite
     public static float sin(final double value) {
-        if (!LoomConfig.get().mathOverwritesEnabled) {
+        if (!Config.get().mathOverwritesEnabled) {
             return (float) Math.sin(value);
         }
         return FastMath.sin(value);
@@ -37,7 +37,7 @@ public class MthMixin {
      */
     @Overwrite
     public static float cos(final double value) {
-        if (!LoomConfig.get().mathOverwritesEnabled) {
+        if (!Config.get().mathOverwritesEnabled) {
             return (float) Math.cos(value);
         }
         return FastMath.cos(value);
@@ -49,7 +49,7 @@ public class MthMixin {
      */
     @Overwrite
     public static int floor(final float value) {
-        if (!LoomConfig.get().mathOverwritesEnabled) {
+        if (!Config.get().mathOverwritesEnabled) {
             return (int) Math.floor(value);
         }
         return FastMath.floor(value);
@@ -61,7 +61,7 @@ public class MthMixin {
      */
     @Overwrite
     public static int floor(final double value) {
-        if (!LoomConfig.get().mathOverwritesEnabled) {
+        if (!Config.get().mathOverwritesEnabled) {
             return (int) Math.floor(value);
         }
         return FastMath.floor(value);
@@ -73,7 +73,7 @@ public class MthMixin {
      */
     @Overwrite
     public static long lfloor(final double value) {
-        if (!LoomConfig.get().mathOverwritesEnabled) {
+        if (!Config.get().mathOverwritesEnabled) {
             return (long) Math.floor(value);
         }
         return FastMath.lfloor(value);
@@ -85,7 +85,7 @@ public class MthMixin {
      */
     @Overwrite
     public static int ceil(final float value) {
-        if (!LoomConfig.get().mathOverwritesEnabled) {
+        if (!Config.get().mathOverwritesEnabled) {
             return (int) Math.ceil(value);
         }
         return FastMath.ceil(value);
@@ -97,7 +97,7 @@ public class MthMixin {
      */
     @Overwrite
     public static int ceil(final double value) {
-        if (!LoomConfig.get().mathOverwritesEnabled) {
+        if (!Config.get().mathOverwritesEnabled) {
             return (int) Math.ceil(value);
         }
         return FastMath.ceil(value);

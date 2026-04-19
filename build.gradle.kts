@@ -15,12 +15,12 @@ repositories {
 }
 
 loom {
-	accessWidenerPath = file("src/main/resources/loom.accesswidener")
+	accessWidenerPath = file("src/main/resources/tachyon.accesswidener")
 	splitEnvironmentSourceSets()
 
 	mods {
 		// Use a mod id matching the new project naming (lowercase). Keep source sets the same.
-		register("loomproject") {
+		register("tachyon") {
 			sourceSet(sourceSets.main.get())
 			sourceSet(sourceSets.getByName("client"))
 		}

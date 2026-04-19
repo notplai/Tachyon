@@ -6,7 +6,8 @@
 		"MthMixin",
 		"LevelMixin",
 		"ServerLevelMixin",
-		"MinecraftServerMixin"
+		"MinecraftServerMixin",
+		"ServerExplosionMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

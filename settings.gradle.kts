@@ -13,4 +13,4 @@ pluginManagement {
 	}
 }
 
-rootProject.name = "LoomProject"
+rootProject.name = "Tachyon"

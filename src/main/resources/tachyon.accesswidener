@@ -1,0 +1,11 @@
+accessWidener v2 official
+
+accessible field net/minecraft/world/level/Level blockEntityTickers Ljava/util/List;
+
+# ServerExplosion fields for TNT optimization mixin
+accessible field net/minecraft/world/level/ServerExplosion level Lnet/minecraft/server/level/ServerLevel;
+accessible field net/minecraft/world/level/ServerExplosion center Lnet/minecraft/world/phys/Vec3;
+accessible field net/minecraft/world/level/ServerExplosion radius F
+accessible field net/minecraft/world/level/ServerExplosion damageCalculator Lnet/minecraft/world/level/ExplosionDamageCalculator;
+accessible method net/minecraft/world/level/ServerExplosion calculateExplodedPositions ()Ljava/util/List;
+

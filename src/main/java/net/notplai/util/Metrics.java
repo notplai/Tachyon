@@ -8,16 +8,16 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * Central metrics tracker for Loom optimizations.
+ * Central metrics tracker for Tachyon optimizations.
  * <p>
  * Thread-safety model:
  * - Write path (server tick thread) acquires write lock briefly to update rolling arrays.
  * - Read path (render thread / F3 screen) uses atomic snapshot references for consistent reads.
  * - Snapshot is published every tick to avoid partial state reads.
  */
-public final class LoomMetrics {
+public final class Metrics {
 
-    private LoomMetrics() {}
+    private Metrics() {}
 
     private static final int SAMPLE_COUNT = 100;
 
