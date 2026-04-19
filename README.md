@@ -66,4 +66,4 @@ For technical inquiries, architectural discussions, or metadata changes, please 
 
 ## License
 
-This project is released under **CC0-1.0** (Creative Commons Zero v1.0 Universal). See the `LICENSE` file for more details.
+This project is licensed under the **Apache License 2.0**. See the `LICENSE` file for more details.
