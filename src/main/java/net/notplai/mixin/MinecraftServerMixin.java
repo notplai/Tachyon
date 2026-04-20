@@ -54,10 +54,10 @@ public abstract class MinecraftServerMixin {
         if (config.parallelizationEnabled) {
             TickingExecutor exec = new TickingExecutor("server");
             TachyonAPI.initialize(exec);
-            TACHYON_LOGGER.info("[Tachyon] TickingExecutor initialized — parallelism: {}, adaptive: {}",
+            TACHYON_LOGGER.info("TickingExecutor initialized. parallelism: {}, adaptive: {}",
                     config.maxParallelism, config.adaptiveBatchSizing);
         } else {
-            TACHYON_LOGGER.info("[Tachyon] Parallelization disabled by config");
+            TACHYON_LOGGER.info("Parallelization disabled by config");
         }
     }
 
@@ -84,7 +84,7 @@ public abstract class MinecraftServerMixin {
 
         double warnMs = Config.get().dimensionTickWarnMs;
         if (ms > warnMs) {
-            TACHYON_LOGGER.warn("[Tachyon] Dimension {} took {}ms (>{}ms budget)",
+            TACHYON_LOGGER.warn("Dimension {} took {}ms (>{}ms budget)",
                     dimName, String.format("%.2f", ms), String.format("%.0f", warnMs));
         }
     }
@@ -100,8 +100,8 @@ public abstract class MinecraftServerMixin {
 
         if (!tachyon$loggedStartup) {
             tachyon$loggedStartup = true;
-            TACHYON_LOGGER.info("[Tachyon] Server tick profiling active — tracking per-dimension timing");
-            TACHYON_LOGGER.info("[Tachyon] FastMath: {} | Parallelization: {} | Cores: {}",
+            TACHYON_LOGGER.info("Server tick profiling active. Tracking per-dimension timing");
+            TACHYON_LOGGER.info("FastMath: {}, Parallelization: {}, Cores: {}",
                     Config.get().mathOverwritesEnabled ? "ON" : "OFF",
                     Config.get().parallelizationEnabled ? "ON" : "OFF",
                     Runtime.getRuntime().availableProcessors());
@@ -136,7 +136,7 @@ public abstract class MinecraftServerMixin {
 
         double warnMs = Config.get().dimensionTickWarnMs;
         if (ms > warnMs) {
-            TACHYON_LOGGER.warn("[Tachyon] tickChildren ({} dimensions) took {}ms",
+            TACHYON_LOGGER.warn("tickChildren ({} dimensions) took {}ms",
                     tachyon$dimensionCount, String.format("%.2f", ms));
         }
     }
@@ -148,10 +148,10 @@ public abstract class MinecraftServerMixin {
     private void tachyon$onServerStop(CallbackInfo ci) {
         TachyonAPI.shutdown();
 
-        TACHYON_LOGGER.info("[Tachyon] Server stopping — final stats:");
-        TACHYON_LOGGER.info("[Tachyon]   Total ticks profiled: {}", Metrics.getTotalTicksProfiled());
-        TACHYON_LOGGER.info("[Tachyon]   Avg server tick: {}ms", String.format("%.2f", Metrics.getServerTickAvgMs()));
-        TACHYON_LOGGER.info("[Tachyon]   Peak server tick: {}ms", String.format("%.2f", Metrics.getServerTickMaxMs()));
+        TACHYON_LOGGER.info("Server stopping. final stats:");
+        TACHYON_LOGGER.info("   Total ticks profiled: {}", Metrics.getTotalTicksProfiled());
+        TACHYON_LOGGER.info("   Avg server tick: {}ms", String.format("%.2f", Metrics.getServerTickAvgMs()));
+        TACHYON_LOGGER.info("   Peak server tick: {}ms", String.format("%.2f", Metrics.getServerTickMaxMs()));
     }
 }
 

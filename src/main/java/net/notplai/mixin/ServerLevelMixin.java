@@ -42,9 +42,7 @@ public abstract class ServerLevelMixin {
     @Unique
     private long tachyon$tickStartNanos;
 
-    // =========================================================================
     // Explosion throttle state
-    // =========================================================================
 
     /** Number of explosions processed in the current tick */
     @Unique
@@ -54,10 +52,7 @@ public abstract class ServerLevelMixin {
     @Unique
     private final Deque<Runnable> tachyon$explosionQueue = new ArrayDeque<>();
 
-    // =========================================================================
     // Tick hooks
-    // =========================================================================
-
     @Inject(method = "tick", at = @At("HEAD"))
     private void tachyon$onTickStart(BooleanSupplier hasTimeLeft, CallbackInfo ci) {
         tachyon$tickStartNanos = System.nanoTime();
@@ -79,7 +74,7 @@ public abstract class ServerLevelMixin {
         }
 
         if (!tachyon$explosionQueue.isEmpty()) {
-            TACHYON_LOGGER.debug("[Tachyon] {} explosions still queued for next tick", tachyon$explosionQueue.size());
+            TACHYON_LOGGER.debug("{} explosions still queued for next tick", tachyon$explosionQueue.size());
         }
     }
 
@@ -96,10 +91,6 @@ public abstract class ServerLevelMixin {
                     String.format("%.2f", ms), self.dimension());
         }
     }
-
-    // =========================================================================
-    // Explosion throttle
-    // =========================================================================
 
     /**
      * Intercept the main explode() method. If we've exceeded the per-tick limit,
@@ -129,12 +120,12 @@ public abstract class ServerLevelMixin {
         }
 
         if (tachyon$explosionsThisTick < maxPerTick) {
-            // Under limit — let it through
+            // Under limit. let it through
             tachyon$explosionsThisTick++;
             return;
         }
 
-        // Over limit — queue for next tick
+        // Over limit. queue for next tick
         ServerLevel self = (ServerLevel) (Object) this;
         tachyon$explosionQueue.add(() -> {
             self.explode(source, damageSource, damageCalculator, x, y, z, r, fire,

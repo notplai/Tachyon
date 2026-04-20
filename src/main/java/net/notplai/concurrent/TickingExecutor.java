@@ -49,11 +49,11 @@ public final class TickingExecutor {
                     t.setDaemon(true);
                     return t;
                 },
-                (t, e) -> LOGGER.error("[Tachyon/{}] Uncaught exception in CPU pool thread {}", name, t.getName(), e),
+                (t, e) -> LOGGER.error("{}: Uncaught exception in CPU pool thread {}", name, t.getName(), e),
                 true // async mode
         );
 
-        LOGGER.info("[Tachyon/{}] Executor initialized: VirtualThreads + ForkJoinPool(parallelism={})", name, parallelism);
+        LOGGER.info("{}: Executor initialized. VirtualThreads + ForkJoinPool(parallelism={})", name, parallelism);
     }
 
     /**
@@ -77,7 +77,7 @@ public final class TickingExecutor {
                 try {
                     action.accept(item);
                 } catch (Exception e) {
-                    LOGGER.error("[Tachyon/{}] Exception ticking item: {}", name, item, e);
+                    LOGGER.error("{}: Exception ticking item {}", name, item, e);
                 }
             }));
         }
@@ -119,7 +119,7 @@ public final class TickingExecutor {
                     try {
                         action.accept(items.get(i));
                     } catch (Exception e) {
-                        LOGGER.error("[Tachyon/{}] Exception ticking item: {}", name, items.get(i), e);
+                        LOGGER.error("{}: Exception ticking item {}", name, items.get(i), e);
                     }
                 }
             }));
@@ -201,18 +201,18 @@ public final class TickingExecutor {
         try {
             if (!virtualExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
                 virtualExecutor.shutdownNow();
-                LOGGER.warn("[Tachyon/{}] Virtual executor forced shutdown", name);
+                LOGGER.warn("{}: Virtual executor forced shutdown", name);
             }
             if (!cpuPool.awaitTermination(5, TimeUnit.SECONDS)) {
                 cpuPool.shutdownNow();
-                LOGGER.warn("[Tachyon/{}] CPU pool forced shutdown", name);
+                LOGGER.warn("{}: CPU pool forced shutdown", name);
             }
         } catch (InterruptedException e) {
             virtualExecutor.shutdownNow();
             cpuPool.shutdownNow();
             Thread.currentThread().interrupt();
         }
-        LOGGER.info("[Tachyon/{}] Executor shut down cleanly", name);
+        LOGGER.info("{}: Executor shut down cleanly", name);
     }
 
 
@@ -221,7 +221,7 @@ public final class TickingExecutor {
             try {
                 action.accept(item);
             } catch (Exception e) {
-                LOGGER.error("[Tachyon/{}] Exception ticking item: {}", name, item, e);
+                LOGGER.error("{}: Exception ticking item {}", name, item, e);
             }
         }
     }
@@ -232,21 +232,21 @@ public final class TickingExecutor {
             try {
                 long remaining = deadline - System.currentTimeMillis();
                 if (remaining <= 0) {
-                    LOGGER.warn("[Tachyon/{}] Circuit breaker: timeout after {}ms, cancelling remaining tasks",
+                    LOGGER.warn("{}: Circuit breaker timeout after {}ms, cancelling remaining tasks",
                             name, timeoutMs);
                     futures.forEach(f -> f.cancel(true));
                     break;
                 }
                 future.get(remaining, TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
-                LOGGER.warn("[Tachyon/{}] Task timed out, triggering circuit breaker", name);
+                LOGGER.warn("{}: Task timed out, triggering circuit breaker", name);
                 futures.forEach(f -> f.cancel(true));
                 break;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
             } catch (ExecutionException e) {
-                LOGGER.error("[Tachyon/{}] Unexpected execution exception", name, e);
+                LOGGER.error("{}: Unexpected execution exception", name, e);
             } catch (CancellationException ignored) {
             }
         }

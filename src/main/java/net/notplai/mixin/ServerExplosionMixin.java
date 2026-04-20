@@ -47,13 +47,12 @@ public abstract class ServerExplosionMixin {
     @Shadow @Final private float radius;
     @Shadow @Final private ExplosionDamageCalculator damageCalculator;
 
-    // =========================================================================
     // Pre-computed ray direction table (static, computed once at class load)
     // 1352 surface rays of the 16×16×16 grid, in the exact same iteration order
     // as vanilla (xx → yy → zz), so Random.nextFloat() consumption is identical.
-    // =========================================================================
+
     @Unique
-    private static final double[][] LOOM_RAY_DIRS;
+    private static final double[][] RAY_DIRS;
 
     static {
         List<double[]> dirs = new ArrayList<>(1352);
@@ -70,7 +69,7 @@ public abstract class ServerExplosionMixin {
                 }
             }
         }
-        LOOM_RAY_DIRS = dirs.toArray(new double[0][]);
+        RAY_DIRS = dirs.toArray(new double[0][]);
     }
 
     /**
@@ -91,7 +90,7 @@ public abstract class ServerExplosionMixin {
 
         ServerExplosion self = (ServerExplosion) (Object) this;
 
-        for (double[] dir : LOOM_RAY_DIRS) {
+        for (double[] dir : RAY_DIRS) {
             double xd = dir[0];
             double yd = dir[1];
             double zd = dir[2];

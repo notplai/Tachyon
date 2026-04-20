@@ -105,9 +105,9 @@ public final class Config {
         try {
             Files.createDirectories(configDir);
             Files.writeString(configFile, GSON.toJson(INSTANCE));
-            LOGGER.info("[Tachyon] Config saved to {}", configFile);
+            LOGGER.info("Config saved to {}", configFile);
         } catch (IOException e) {
-            LOGGER.error("[Tachyon] Failed to save config", e);
+            LOGGER.error("Failed to save config", e);
         }
     }
 

@@ -50,13 +50,10 @@ public class Main implements ModInitializer {
         LOGGER.info("""
                     [FastMath] Initialized ({} entries) in {}µs:
                         sin(0)={}, cos(0)={}, sin(π/2)={}, cos(π/2)={}
-                        sin(NaN)={}, cos(∞)={} (safety checks OK)
-                        floor(-1.5)={}, ceil(-1.5)={}, floor(1.7)={}, ceil(1.7)={}""",
+                        sin(NaN)={}, cos(∞)={}""",
                 FastMath.getTableSize(), warmElapsed / 1000,
                 sinZero, cosZero, sinHalfPi, cosHalfPi,
-                sinNaN, cosInf,
-                FastMath.floor(-1.5), FastMath.ceil(-1.5),
-                FastMath.floor(1.7), FastMath.ceil(1.7)
+                sinNaN, cosInf
         );
     }
 }
