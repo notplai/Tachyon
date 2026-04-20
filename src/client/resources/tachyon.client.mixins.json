@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"package": "net.notplai.client.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"DebugScreenOverlayMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

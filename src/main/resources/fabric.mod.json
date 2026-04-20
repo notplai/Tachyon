@@ -1,0 +1,42 @@
+{
+	"schemaVersion": 1,
+	"id": "tachyon",
+	"version": "${version}",
+	"name": "Tachyon",
+	"description": "Tachyon offloads heavy game work to concurrent threads.",
+	"authors": [
+		"NotPlai"
+	],
+	"contact": {
+		"homepage": "https://notplai.net/",
+		"sources": "https://github.com/notplai/LoomProject"
+	},
+	"license": "Apache-2.0",
+	"accessWidener": "tachyon.accesswidener",
+	"icon": "assets/tachyon/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"net.notplai.Main"
+		],
+		"client": [
+			"net.notplai.client.TachyonClient"
+		],
+		"fabric-datagen": [
+			"net.notplai.client.TachyonDataGenerator"
+		]
+	},
+	"mixins": [
+		"tachyon.mixins.json",
+		{
+			"config": "tachyon.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": "~26.1",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

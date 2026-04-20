@@ -1,0 +1,18 @@
+{
+	"required": true,
+	"package": "net.notplai.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"MthMixin",
+		"LevelMixin",
+		"ServerLevelMixin",
+		"MinecraftServerMixin",
+		"ServerExplosionMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}
