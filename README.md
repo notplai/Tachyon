@@ -1,8 +1,8 @@
 # Tachyon
 <p>
   <img alt="GitHub License" src="https://img.shields.io/github/license/notplai/Tachyon?style=for-the-badge">
-  <img alt="GitHub branch check runs" src="https://img.shields.io/github/check-runs/notplai/Tachyon%2Findev?style=for-the-badge">
-  <img alt="GitHub last commit (branch)" src="https://img.shields.io/github/last-commit/notplai/Tachyon%2Findev?style=for-the-badge">
+  <img alt="GitHub branch check runs" src="https://img.shields.io/github/check-runs/notplai/Tachyon%2F26.1/indev?style=for-the-badge">
+  <img alt="GitHub last commit (branch)" src="https://img.shields.io/github/last-commit/notplai/Tachyon%2F26.1/indev?style=for-the-badge">
   <img alt="GitHub forks" src="https://img.shields.io/github/forks/notplai/Tachyon?style=for-the-badge">
 </p>
 
